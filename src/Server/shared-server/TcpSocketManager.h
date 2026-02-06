@@ -18,6 +18,7 @@ class TcpSocketManager
 	friend class TcpSocket;
 	friend class TcpClientSocket;
 	friend class TcpServerSocket;
+	friend class TestApp;
 
 	using StartUserThreadCallback    = std::function<void()>;
 	using ShutdownUserThreadCallback = std::function<void()>;

@@ -12,6 +12,11 @@
       <BuildDependency Project="src/MathUtils/MathUtils.vcxproj" />
     </Project>
   </Folder>
+  <Folder Name="/tests/Server/">
+    <Project Path="tests/Server/Ebenezer/Ebenezer.Tests.vcxproj" Id="e8b0e1e7-a1e2-4174-af92-97e826ec4fd9">
+      <BuildDependency Project="src/Server/Ebenezer/Ebenezer.Core.vcxproj" />
+    </Project>
+  </Folder>
   <Folder Name="/_deps/">
     <Project Path="src/Client/JpegFile/JpegFile.vcxproj" Id="e3ce5b4f-97bc-46b1-b36d-25ab39d4a3f9">
       <BuildDependency Project="deps/fetch-and-build-wrappers/fetch-libjpeg.vcxproj" />
@@ -100,5 +105,14 @@
       <BuildDependency Project="deps/fetch-and-build-wrappers/sync-submodules.vcxproj" />
     </Project>
     <Project Path="deps/fetch-and-build-wrappers/sync-submodules.vcxproj" Id="1f14357d-e06a-48a1-b39a-74082f381fc0" />
+  </Folder>
+  <Folder Name="/_deps/server/">
+    <Project Path="src/Server/Ebenezer/Ebenezer.Core.vcxproj" Id="64439624-b2df-4550-9c52-67e61b8ec0ef">
+      <BuildDependency Project="deps/fetch-and-build-wrappers/fetch-djb2.vcxproj" />
+      <BuildDependency Project="src/db-library/db-library.vcxproj" />
+      <BuildDependency Project="src/FileIO/FileIO.vcxproj" />
+      <BuildDependency Project="src/Server/shared-server/shared-server.vcxproj" />
+      <BuildDependency Project="src/shared/shared.vcxproj" />
+    </Project>
   </Folder>
 </Solution>
