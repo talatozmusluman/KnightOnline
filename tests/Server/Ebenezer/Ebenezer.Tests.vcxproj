@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="data\ItemUpgrade_test_data.h" />
+    <ClCompile Include="ByteBuffer_test.cpp" />
     <ClCompile Include="ItemUpgrade_test.cpp" />
   </ItemGroup>
   <ItemGroup>

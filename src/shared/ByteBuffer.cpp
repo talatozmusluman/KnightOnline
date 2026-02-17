@@ -36,8 +36,10 @@
 	template <>                                                \
 	type ByteBuffer::read<type>()                              \
 	{                                                          \
-		type r  = read<type>(_rpos);                           \
-		_rpos  += sizeof(type);                                \
+		if (_rpos + sizeof(type) > size())                     \
+			return {};                                         \
+		type r = read<type>(_rpos);                            \
+		_rpos += sizeof(type);                                 \
 		return r;                                              \
 	}
 
@@ -206,40 +208,56 @@ bool ByteBuffer::readString(std::string& dest)
 {
 	dest.clear();
 
+	size_t pos = _rpos;
 	if (_doubleByte)
 	{
 		uint16_t len = 0;
-		if (!read(&len, sizeof(uint16_t)))
+		if (!read(pos, &len, sizeof(uint16_t)))
 			return false;
 
-		if (_rpos + len > size())
+		pos += sizeof(uint16_t);
+		if (pos + len > size())
 			return false;
 
 		dest.assign(len, '\0');
-		return read(&dest[0], len);
+		if (!read(pos, &dest[0], len))
+			return false;
+
+		_rpos = pos + len;
+		return true;
 	}
 	else
 	{
 		uint8_t len = 0;
-		if (!read(&len, sizeof(uint8_t)))
+		if (!read(pos, &len, sizeof(uint8_t)))
 			return false;
 
-		if (_rpos + len > size())
+		pos += sizeof(uint8_t);
+		if (pos + len > size())
 			return false;
 
 		dest.assign(len, '\0');
-		return read(&dest[0], len);
+		if (!read(pos, &dest[0], len))
+			return false;
+
+		_rpos = pos + len;
+		return true;
 	}
 }
 
 bool ByteBuffer::readString(std::string& dest, size_t len)
 {
 	dest.clear();
-	if (_rpos + len > size())
+	size_t pos = _rpos;
+	if (pos + len > size())
 		return false;
 
 	dest.assign(len, '\0');
-	return read(&dest[0], len);
+	if (!read(pos, &dest[0], len))
+		return false;
+
+	_rpos = pos + len;
+	return true;
 }
 
 const std::vector<uint8_t>& ByteBuffer::storage() const
