@@ -1728,7 +1728,7 @@ void CMagicSkillMng::MsgRecv_Casting(Packet& pkt)
 	if (iTargetID == -1)
 		vTargetPos.Set((float) Data[0], (float) Data[1], (float) Data[2]);
 
-	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pPlayer == nullptr)
 		return;
 
@@ -1809,7 +1809,7 @@ void CMagicSkillMng::MsgRecv_Flying(Packet& pkt)
 	if (iSourceID < 0 || iSourceID == s_pPlayer->IDNumber())
 		return;
 
-	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pPlayer == nullptr)
 		return;
 
@@ -1877,7 +1877,7 @@ void CMagicSkillMng::MsgRecv_Effecting(Packet& pkt)
 		Data[i] = pkt.read<int16_t>();
 	}
 
-	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, false);
+	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, false);
 	if (pPlayer == nullptr)
 		return;
 
@@ -1940,7 +1940,7 @@ void CMagicSkillMng::MsgRecv_Fail(Packet& pkt)
 	{
 		Data[i] = pkt.read<int16_t>();
 	}
-	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, false);
+	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, false);
 	if (pPlayer == nullptr)
 		return;
 
@@ -2156,7 +2156,7 @@ void CMagicSkillMng::MsgRecv_BuffType(Packet& pkt)
 //
 void CMagicSkillMng::FlyingType2(__TABLE_UPC_SKILL* pSkill, int iSourceID, int iTargetID, int16_t* pData)
 {
-	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pPlayer == nullptr)
 		return;
 	__TABLE_UPC_SKILL_TYPE_2* pType2 = m_pTbl_Type_2->Find(pSkill->dwID);
@@ -2291,7 +2291,7 @@ bool CMagicSkillMng::EffectingType1(uint32_t dwMagicID, int iSourceID, int iTarg
 			__TABLE_UPC_SKILL_TYPE_1* pType1 = m_pTbl_Type_1->Find(dwMagicID);
 			if (pType1 != nullptr)
 			{
-				CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByID(iSourceID, true);
+				CPlayerBase* pPlayer = m_pGameProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 				__ASSERT(pPlayer, "NULL Player Pointer!!");
 				if (pPlayer != nullptr)
 				{

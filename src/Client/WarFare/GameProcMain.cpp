@@ -489,6 +489,8 @@ void CGameProcMain::Tick()
 	if (!s_pSocket->IsConnected())
 		return;
 
+	PendingNpcIn_Tick(); // spread expensive NPC init across frames to avoid hitching on large spawns
+
 #ifdef _DEBUG
 	if (s_pLocalInput->IsKeyPressed(DIK_F11))
 	{
@@ -863,6 +865,10 @@ bool CGameProcMain::ProcessPacket(Packet& pkt)
 			return true;
 		case WIZ_WARP:
 		{
+			m_PendingNpcIns.clear();
+			m_SetNPCID.clear();
+			DeferredTargetHp_Clear();
+
 			float fX       = (pkt.read<uint16_t>()) / 10.0f;
 			float fZ       = (pkt.read<uint16_t>()) / 10.0f;
 
@@ -2835,6 +2841,178 @@ bool CGameProcMain::MsgRecv_UserInRequested(Packet& pkt)
 	return true;
 }
 
+CPlayerBase* CGameProcMain::CharacterGetByIDOrSpawnPending(int iID, bool bFromAlive)
+{
+	CPlayerBase* pTarget = CGameBase::CharacterGetByID(iID, bFromAlive);
+	if (pTarget != nullptr)
+		return pTarget;
+
+	if (PendingNpcIn_SpawnById(iID))
+		return CGameBase::CharacterGetByID(iID, bFromAlive);
+
+	return nullptr;
+}
+
+void CGameProcMain::DeferredTargetHp_Clear()
+{
+	m_DeferredTargetHps.clear();
+}
+
+void CGameProcMain::DeferredTargetHp_RecordIfNeeded(int iID, uint32_t iHPMax, uint32_t iHPCur, int32_t iHPChange)
+{
+	// Only store if the NPC is currently pending spawn. Otherwise this can grow unbounded
+	// with IDs we may never create locally.
+	bool bIsPending = false;
+	for (const auto& pending : m_PendingNpcIns)
+	{
+		if (pending.iID == iID)
+		{
+			bIsPending = true;
+			break;
+		}
+	}
+
+	if (!bIsPending)
+		return;
+
+	DeferredTargetHp& hp = m_DeferredTargetHps[iID];
+	hp.iHPMax            = iHPMax;
+	hp.iHPCur            = iHPCur;
+	hp.iHPChange         = iHPChange;
+}
+
+void CGameProcMain::DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget)
+{
+	if (pTarget == nullptr)
+		return;
+
+	auto it = m_DeferredTargetHps.find(iID);
+	if (it == m_DeferredTargetHps.end())
+		return;
+
+	// Apply silently (the original code only outputs messages when the NPC exists).
+	pTarget->m_InfoBase.iHP    = it->second.iHPCur;
+	pTarget->m_InfoBase.iHPMax = it->second.iHPMax;
+
+	m_DeferredTargetHps.erase(it);
+}
+
+bool CGameProcMain::PendingNpcIn_Parse(Packet& pkt, PendingNpcIn& out)
+{
+	out.iID      = pkt.read<int16_t>();        // Server에서 관리하는 고유 ID
+	out.iIDResrc = pkt.read<int16_t>();        // 리소스 ID
+	/*int iType       =*/pkt.read<uint8_t>();  // NPC Type - 0x05 : 상인
+	/*int iItemTrdeID =*/pkt.read<uint32_t>(); // 아이템 거래할 그룹 ID 서버에 요청할 ID
+	out.iScale   = pkt.read<int16_t>();        // 스케일 100 은 1.0
+	out.iItemID0 = pkt.read<uint32_t>();       // 리소스 ID
+	out.iItemID1 = pkt.read<uint32_t>();       // 리소스 ID
+
+	int iNameLen = pkt.read<uint8_t>();
+	if (iNameLen > 0)
+		pkt.readString(out.szName, iNameLen);
+	else
+		out.szName.clear();
+
+	out.eNation = (e_Nation) pkt.read<uint8_t>(); // 소속 국가. 0 이면 없다. 1
+	out.iLevel  = pkt.read<uint8_t>();
+
+	out.fXPos   = (pkt.read<uint16_t>()) / 10.0f;
+	out.fZPos   = (pkt.read<uint16_t>()) / 10.0f;
+	out.fYPos   = (pkt.read<int16_t>()) / 10.0f;
+
+	out.dwStatus = pkt.read<uint32_t>();      // 상태... 여러가지로 or 연산해서 쓴다.
+	out.dwType   = pkt.read<uint8_t>();       // 타입... 0 이면 캐릭터 타입 NPC, 1 이면 오브젝트 타입 NPC
+
+	/*uint16_t sIDK0      =*/pkt.read<int16_t>();
+	/*int16_t sIDK1       =*/pkt.read<int16_t>();
+	/*uint8_t byDirection =*/pkt.read<uint8_t>();
+
+	return true;
+}
+
+bool CGameProcMain::PendingNpcIn_RemoveById(int iID)
+{
+	if (m_PendingNpcIns.empty())
+		return false;
+
+	for (auto it = m_PendingNpcIns.begin(); it != m_PendingNpcIns.end(); ++it)
+	{
+		if (it->iID != iID)
+			continue;
+
+		m_PendingNpcIns.erase(it);
+		return true;
+	}
+
+	return false;
+}
+
+bool CGameProcMain::PendingNpcIn_SpawnById(int iID)
+{
+	if (m_PendingNpcIns.empty())
+		return false;
+
+	for (auto it = m_PendingNpcIns.begin(); it != m_PendingNpcIns.end(); ++it)
+	{
+		if (it->iID != iID)
+			continue;
+
+		PendingNpcIn in = std::move(*it);
+		m_PendingNpcIns.erase(it);
+		return PendingNpcIn_Spawn(in);
+	}
+
+	return false;
+}
+
+void CGameProcMain::PendingNpcIn_PruneByRegionSet()
+{
+	if (m_PendingNpcIns.empty())
+		return;
+
+	for (auto it = m_PendingNpcIns.begin(); it != m_PendingNpcIns.end();)
+	{
+		if (m_SetNPCID.find(it->iID) == m_SetNPCID.end())
+			it = m_PendingNpcIns.erase(it);
+		else
+			++it;
+	}
+
+	// Also drop deferred HP updates for NPCs that will never spawn.
+	for (auto it = m_DeferredTargetHps.begin(); it != m_DeferredTargetHps.end();)
+	{
+		if (m_SetNPCID.find(it->first) == m_SetNPCID.end())
+			it = m_DeferredTargetHps.erase(it);
+		else
+			++it;
+	}
+}
+
+void CGameProcMain::PendingNpcIn_Tick()
+{
+	if (m_PendingNpcIns.empty())
+		return;
+
+	constexpr int MAX_SPAWNS_PER_FRAME = 50;
+	constexpr float TIME_BUDGET_SEC   = 0.004f;
+
+	const float fStart = CN3Base::TimeGet();
+	int iSpawned       = 0;
+
+	while (!m_PendingNpcIns.empty())
+	{
+		if (iSpawned >= MAX_SPAWNS_PER_FRAME)
+			break;
+		if ((CN3Base::TimeGet() - fStart) > TIME_BUDGET_SEC)
+			break;
+
+		PendingNpcIn in = std::move(m_PendingNpcIns.front());
+		m_PendingNpcIns.pop_front();
+		PendingNpcIn_Spawn(in);
+		++iSpawned;
+	}
+}
+
 bool CGameProcMain::MsgRecv_NPCInOut(Packet& pkt)
 {
 	uint8_t byType = pkt.read<uint8_t>();
@@ -2852,44 +3030,42 @@ bool CGameProcMain::MsgRecv_NPCInOut(Packet& pkt)
 
 bool CGameProcMain::MsgRecv_NPCIn(Packet& pkt)
 {
-	int iID      = pkt.read<int16_t>();        // Server에서 관리하는 고유 ID
-	int iIDResrc = pkt.read<int16_t>();        // 리소스 ID
-	/*int iType       =*/pkt.read<uint8_t>();  // NPC Type - 0x05 : 상인
-	/*int iItemTrdeID =*/pkt.read<uint32_t>(); // 아이템 거래할 그룹 ID 서버에 요청할 ID
-	int iScale   = pkt.read<int16_t>();        // 스케일 100 은 1.0
-	int iItemID0 = pkt.read<uint32_t>();       // 리소스 ID
-	int iItemID1 = pkt.read<uint32_t>();       // 리소스 ID
-	int iNameLen = pkt.read<uint8_t>();
-	std::string szName;                        // NPC 아이디..
-	if (iNameLen > 0)
-		pkt.readString(szName, iNameLen);
-	else
-		szName = "";
+	PendingNpcIn in;
+	PendingNpcIn_Parse(pkt, in);
+
+	PendingNpcIn_RemoveById(in.iID);
+	return PendingNpcIn_Spawn(in);
+}
+
+bool CGameProcMain::PendingNpcIn_Spawn(const PendingNpcIn& in)
+{
+	int iID               = in.iID;
+	int iIDResrc          = in.iIDResrc;
+	int iScale            = in.iScale;
+	uint32_t iItemID0     = in.iItemID0;
+	uint32_t iItemID1     = in.iItemID1;
+	const std::string& szName = in.szName;
 
 #ifdef _DEBUG
 	CLogWriter::Write("NPC In - ID({}) Name({}) Time({:.1f})", iID, szName, CN3Base::TimeGet()); // 캐릭 세팅..
 #endif
 
-	e_Nation eNation = (e_Nation) pkt.read<uint8_t>();                                           // 소속 국가. 0 이면 없다. 1
-	int iLevel       = pkt.read<uint8_t>();
+	e_Nation eNation      = in.eNation;
+	int iLevel            = in.iLevel;
 
-	float fXPos      = (pkt.read<uint16_t>()) / 10.0f;
-	float fZPos      = (pkt.read<uint16_t>()) / 10.0f;
-	float fYPos      = (pkt.read<int16_t>()) / 10.0f;
+	float fXPos           = in.fXPos;
+	float fZPos           = in.fZPos;
+	float fYPos           = in.fYPos;
 
-	float fYTerrain  = ACT_WORLD->GetHeightWithTerrain(fXPos, fZPos);                          // 지형의 높이값 얻기..
-	float fYObject   = ACT_WORLD->GetHeightNearstPosWithShape(__Vector3(fXPos, fYPos, fZPos)); // 오브젝트에서 가장 가까운 높이값 얻기..
+	float fYTerrain       = ACT_WORLD->GetHeightWithTerrain(fXPos, fZPos);                          // 지형의 높이값 얻기..
+	float fYObject        = ACT_WORLD->GetHeightNearstPosWithShape(__Vector3(fXPos, fYPos, fZPos)); // 오브젝트에서 가장 가까운 높이값 얻기..
 	if (fYObject > fYTerrain)
 		fYPos = fYObject;
 	else
 		fYPos = fYTerrain;
 
-	uint32_t dwStatus = pkt.read<uint32_t>(); // 상태... 여러가지로 or 연산해서 쓴다. 0 문 열림, 1 닫힘. 2, 4, 8, 16 ....
-	uint32_t dwType   = pkt.read<uint8_t>();  // 타입... 0 이면 캐릭터 타입 NPC, 1 이면 오브젝트 타입 NPC
-
-	/*uint16_t sIDK0      =*/pkt.read<int16_t>();
-	/*int16_t sIDK1       =*/pkt.read<int16_t>();
-	/*uint8_t byDirection =*/pkt.read<uint8_t>();
+	uint32_t dwStatus     = in.dwStatus;
+	uint32_t dwType       = in.dwType;
 
 	CPlayerNPC* pNPC = s_pOPMgr->NPCGetByID(iID, false);
 	if (pNPC) // 이미 아이디 같은 캐릭이 있으면..
@@ -3060,12 +3236,16 @@ bool CGameProcMain::MsgRecv_NPCIn(Packet& pkt)
 	pNPC->Action(PSA_BASIC, true, nullptr, true);
 	pNPC->ActionMove(PSM_STOP);
 
+	DeferredTargetHp_ApplyIfPresent(iID, pNPC);
+
 	return true;
 }
 
 bool CGameProcMain::MsgRecv_NPCOut(Packet& pkt)
 {
 	int iID = pkt.read<int16_t>();   // Server에서 관리하는 고유 ID
+	if (PendingNpcIn_RemoveById(iID))
+		return true;
 	return s_pOPMgr->NPCDelete(iID); // 캐릭터 제거...
 }
 
@@ -3100,8 +3280,12 @@ bool CGameProcMain::MsgRecv_NPCInAndRequest(Packet& pkt)
 	if (m_SetNPCID.empty()) // 새로 받은게 한개도 없다면 몽땅 날린다..
 	{
 		s_pOPMgr->ReleaseNPCs();
+		m_PendingNpcIns.clear();
+		DeferredTargetHp_Clear();
 		return false;
 	}
+
+	PendingNpcIn_PruneByRegionSet();
 
 	// 새로 받은 아이디와 리스트에 있는 NPC ID 를 검색해서..
 	CPlayerNPC* pNPC = nullptr;
@@ -3142,6 +3326,10 @@ bool CGameProcMain::MsgRecv_NPCInAndRequest(Packet& pkt)
 
 	////////////////////////////////////////////////////////////////////////////
 	// 바로 요청 패킷을 만들어 보낸다..
+	// If we already have the detailed info queued for spawn, don't re-request it.
+	for (const auto& pending : m_PendingNpcIns)
+		m_SetNPCID.erase(pending.iID);
+
 	int iNewNPCCount = static_cast<int>(m_SetNPCID.size());
 	if (iNewNPCCount > 0)
 	{
@@ -3180,7 +3368,18 @@ bool CGameProcMain::MsgRecv_NPCInRequested(Packet& pkt)
 	}
 
 	for (int i = 0; i < iNPCCount; i++)
-		MsgRecv_NPCIn(pkt); // 플레이어 갯수 만큼 유저 인...
+	{
+		PendingNpcIn in;
+		PendingNpcIn_Parse(pkt, in);
+		PendingNpcIn_RemoveById(in.iID);
+
+		// Object NPCs (doors/levers/etc.) are usually cheap to initialize and may receive events immediately.
+		// Spawn them synchronously to avoid missing/deferring object event updates.
+		if (in.dwType != 0)
+			PendingNpcIn_Spawn(in);
+		else
+			m_PendingNpcIns.push_back(std::move(in));
+	}
 
 	return true;
 }
@@ -3197,8 +3396,14 @@ bool CGameProcMain::MsgRecv_NPCMove(Packet& pkt)
 	CPlayerNPC* pNPC = s_pOPMgr->NPCGetByID(iID, true); // NPC을 ID로서 얻고..
 	if (pNPC == nullptr)
 	{
-		MsgSend_NPCInRequest(iID);
-		return false;                                              // 살아있는 NPC가 있으면..
+		if (PendingNpcIn_SpawnById(iID))
+			pNPC = s_pOPMgr->NPCGetByID(iID, true);
+
+		if (pNPC == nullptr)
+		{
+			MsgSend_NPCInRequest(iID);
+			return false; // 살아있는 NPC가 있으면..
+		}
 	}
 
 	float fY      = ACT_WORLD->GetHeightWithTerrain(fXPos, fZPos); // 지형 높이값..
@@ -3230,11 +3435,17 @@ bool CGameProcMain::MsgRecv_Attack(Packet& pkt)
 		pAttacker = s_pOPMgr->CharacterGetByID(iIDAttacker, true);
 	if (nullptr == pAttacker)                         // 어라 공격하는 넘이 없네??
 	{
-		if (iIDAttacker > 10000)                      // NPC 는 1000 이상이다.
-			this->MsgSend_NPCInRequest(iIDAttacker);  // NPC 정보가 없을 경우 요청한다..
-		else if (iIDAttacker < 3000)
-			this->MsgSend_UserInRequest(iIDAttacker); // NPC 정보가 없을 경우 요청한다..
-		return false;                                 // 공격하는 넘이 없으면 돌아간다.
+		if (iIDAttacker > 10000 && PendingNpcIn_SpawnById(iIDAttacker))
+			pAttacker = s_pOPMgr->CharacterGetByID(iIDAttacker, true);
+
+		if (nullptr == pAttacker)
+		{
+			if (iIDAttacker > 10000)                      // NPC 는 1000 이상이다.
+				this->MsgSend_NPCInRequest(iIDAttacker);  // NPC 정보가 없을 경우 요청한다..
+			else if (iIDAttacker < 3000)
+				this->MsgSend_UserInRequest(iIDAttacker); // NPC 정보가 없을 경우 요청한다..
+			return false;                                 // 공격하는 넘이 없으면 돌아간다.
+		}
 	}
 
 	CPlayerBase* pTarget = nullptr;
@@ -3258,6 +3469,16 @@ bool CGameProcMain::MsgRecv_Attack(Packet& pkt)
 		pTarget = s_pOPMgr->CharacterGetByID(iIDTarget, true);      //  일단 살아있는 넘들중에서 가져와보고..
 		if (nullptr == pTarget)
 			pTarget = s_pOPMgr->CharacterGetByID(iIDTarget, false); // 없다면 죽어가는 넘도 상관없이 타겟으로 잡고
+	}
+
+	if (nullptr == pTarget)
+	{
+		if (iIDTarget > 10000 && PendingNpcIn_SpawnById(iIDTarget))
+		{
+			pTarget = s_pOPMgr->CharacterGetByID(iIDTarget, true);
+			if (nullptr == pTarget)
+				pTarget = s_pOPMgr->CharacterGetByID(iIDTarget, false);
+		}
 	}
 
 	if (nullptr == pTarget)
@@ -4284,22 +4505,25 @@ void CGameProcMain::MsgRecv_TargetHP(Packet& pkt)
 	}
 
 	CPlayerNPC* pTarget = s_pOPMgr->CharacterGetByID(iID, true);
-	if (pTarget != nullptr)
+	if (pTarget == nullptr)
 	{
-		pTarget->m_InfoBase.iHP    = iTargetHPCur;
-		pTarget->m_InfoBase.iHPMax = iTargetHPMax;
+		DeferredTargetHp_RecordIfNeeded(iID, iTargetHPMax, iTargetHPCur, static_cast<int32_t>(iTargetHPChange));
+		return;
+	}
 
-		std::string szMsg;
-		if (iTargetHPChange < 0)
-		{
-			szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_LOST, pTarget->IDString(), -iTargetHPChange);
-			MsgOutput(szMsg, 0xffffffff);
-		}
-		else if (iTargetHPChange > 0)
-		{
-			szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_RECOVER, pTarget->IDString(), iTargetHPChange);
-			MsgOutput(szMsg, 0xff6565ff);
-		}
+	pTarget->m_InfoBase.iHP    = iTargetHPCur;
+	pTarget->m_InfoBase.iHPMax = iTargetHPMax;
+
+	std::string szMsg;
+	if (iTargetHPChange < 0)
+	{
+		szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_LOST, pTarget->IDString(), -iTargetHPChange);
+		MsgOutput(szMsg, 0xffffffff);
+	}
+	else if (iTargetHPChange > 0)
+	{
+		szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_RECOVER, pTarget->IDString(), iTargetHPChange);
+		MsgOutput(szMsg, 0xff6565ff);
 	}
 }
 
@@ -4972,6 +5196,10 @@ void CGameProcMain::MsgRecv_ZoneChange(Packet& pkt)
 	{
 		case ZONE_CHANGE_TELEPORT:
 		{
+			m_PendingNpcIns.clear();
+			m_SetNPCID.clear();
+			DeferredTargetHp_Clear();
+
 			int iZone = 10 * pkt.read<uint8_t>();
 			/*int iZoneSub   =*/pkt.read<uint8_t>();
 			float fX           = pkt.read<uint16_t>() / 10.0f;
@@ -5697,6 +5925,9 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 			int iActivate    = pkt.read<uint8_t>(); // 열고 닫음..
 
 			CPlayerNPC* pNPC = s_pOPMgr->NPCGetByID(iID, true);
+			if (pNPC == nullptr && PendingNpcIn_SpawnById(iID))
+				pNPC = s_pOPMgr->NPCGetByID(iID, true);
+
 			__ASSERT(pNPC, "Invalid NPC ID");
 			if (pNPC != nullptr)
 			{

@@ -4,7 +4,11 @@
 #pragma once
 
 #include "GameProcedure.h"
+#include <cstdint>
+#include <deque>
 #include <set>
+#include <string>
+#include <unordered_map>
 
 typedef std::set<int>::iterator it_ID;
 typedef std::pair<it_ID, bool> pair_ID;
@@ -12,6 +16,7 @@ typedef std::pair<it_ID, bool> pair_ID;
 enum e_ChatMode : uint8_t;
 enum e_SubPacket_Administrator : uint8_t;
 enum e_SubPacket_State : uint8_t;
+class CPlayerNPC;
 class CGameProcMain : public CGameProcedure
 {
 	friend class CGameProcedure;
@@ -20,7 +25,51 @@ protected:
 	std::set<int> m_SetNPCID;
 	std::set<int> m_SetUPCID;
 
+	struct PendingNpcIn
+	{
+		int iID          = 0;
+		int iIDResrc     = 0;
+		int iScale       = 0;
+		uint32_t iItemID0 = 0;
+		uint32_t iItemID1 = 0;
+		std::string szName;
+
+		e_Nation eNation = NATION_UNKNOWN; // packet value; default irrelevant
+		int iLevel       = 0;
+
+		float fXPos      = 0.0f;
+		float fZPos      = 0.0f;
+		float fYPos      = 0.0f;
+
+		uint32_t dwStatus = 0;
+		uint8_t dwType    = 0; // 0 = normal NPC, 1 = object NPC
+	};
+
+	std::deque<PendingNpcIn> m_PendingNpcIns;
+
+	struct DeferredTargetHp
+	{
+		uint32_t iHPMax    = 0;
+		uint32_t iHPCur    = 0;
+		int32_t iHPChange  = 0;
+	};
+
+	std::unordered_map<int, DeferredTargetHp> m_DeferredTargetHps;
+
+	bool PendingNpcIn_Parse(Packet& pkt, PendingNpcIn& out);
+	bool PendingNpcIn_Spawn(const PendingNpcIn& in);
+	bool PendingNpcIn_SpawnById(int iID);
+	bool PendingNpcIn_RemoveById(int iID);
+	void PendingNpcIn_PruneByRegionSet();
+	void PendingNpcIn_Tick();
+
+	void DeferredTargetHp_Clear();
+	void DeferredTargetHp_RecordIfNeeded(int iID, uint32_t iHPMax, uint32_t iHPCur, int32_t iHPChange);
+	void DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget);
+
 public:
+	CPlayerBase* CharacterGetByIDOrSpawnPending(int iID, bool bFromAlive);
+
 #ifdef _N3_64GRID_
 	CServerMesh* m_pSMesh;              // 서버에게 필요한 메쉬 클래스..
 #endif

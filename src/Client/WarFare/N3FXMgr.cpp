@@ -294,10 +294,20 @@ void CN3FXMgr::Tick()
 */
 		if (pBundle->m_iMoveType != FX_BUNDLE_MOVE_NONE && pBundle->m_dwState == FX_BUNDLE_STATE_LIVE)
 		{
-			if (s_pOPMgr->UPCGetByID(pBundle->m_iSourceID, true) == nullptr && s_pOPMgr->NPCGetByID(pBundle->m_iSourceID, true) == nullptr
-				&& s_pPlayer->IDNumber() != pBundle->m_iSourceID)
+			if (s_pPlayer->IDNumber() != pBundle->m_iSourceID
+				&& s_pOPMgr->UPCGetByID(pBundle->m_iSourceID, true) == nullptr
+				&& s_pOPMgr->NPCGetByID(pBundle->m_iSourceID, true) == nullptr)
 			{
-				pBundle->Stop();
+				// Under deferred NPC spawn, the source may exist but not be instantiated yet.
+				// Try to materialize it once before killing the bundle.
+				if (CGameProcedure::s_pProcMain != nullptr)
+					CGameProcedure::s_pProcMain->CharacterGetByIDOrSpawnPending(pBundle->m_iSourceID, true);
+
+				if (s_pOPMgr->UPCGetByID(pBundle->m_iSourceID, true) == nullptr
+					&& s_pOPMgr->NPCGetByID(pBundle->m_iSourceID, true) == nullptr)
+				{
+					pBundle->Stop();
+				}
 			}
 
 			uint32_t dwToMe = 0; //dwToMe==1이면 내가 쏜거.. dwToMe==2이면 내가 타겟..
