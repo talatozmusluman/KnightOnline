@@ -867,6 +867,7 @@ bool CGameProcMain::ProcessPacket(Packet& pkt)
 		{
 			m_PendingNpcIns.clear();
 			m_SetNPCID.clear();
+			DeferredTargetHp_Clear();
 
 			float fX       = (pkt.read<uint16_t>()) / 10.0f;
 			float fZ       = (pkt.read<uint16_t>()) / 10.0f;
@@ -2840,6 +2841,62 @@ bool CGameProcMain::MsgRecv_UserInRequested(Packet& pkt)
 	return true;
 }
 
+CPlayerBase* CGameProcMain::CharacterGetByIDOrSpawnPending(int iID, bool bFromAlive)
+{
+	CPlayerBase* pTarget = CGameBase::CharacterGetByID(iID, bFromAlive);
+	if (pTarget != nullptr)
+		return pTarget;
+
+	if (PendingNpcIn_SpawnById(iID))
+		return CGameBase::CharacterGetByID(iID, bFromAlive);
+
+	return nullptr;
+}
+
+void CGameProcMain::DeferredTargetHp_Clear()
+{
+	m_DeferredTargetHps.clear();
+}
+
+void CGameProcMain::DeferredTargetHp_RecordIfNeeded(int iID, uint32_t iHPMax, uint32_t iHPCur, int32_t iHPChange)
+{
+	// Only store if the NPC is currently pending spawn. Otherwise this can grow unbounded
+	// with IDs we may never create locally.
+	bool bIsPending = false;
+	for (const auto& pending : m_PendingNpcIns)
+	{
+		if (pending.iID == iID)
+		{
+			bIsPending = true;
+			break;
+		}
+	}
+
+	if (!bIsPending)
+		return;
+
+	DeferredTargetHp& hp = m_DeferredTargetHps[iID];
+	hp.iHPMax            = iHPMax;
+	hp.iHPCur            = iHPCur;
+	hp.iHPChange         = iHPChange;
+}
+
+void CGameProcMain::DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget)
+{
+	if (pTarget == nullptr)
+		return;
+
+	auto it = m_DeferredTargetHps.find(iID);
+	if (it == m_DeferredTargetHps.end())
+		return;
+
+	// Apply silently (the original code only outputs messages when the NPC exists).
+	pTarget->m_InfoBase.iHP    = it->second.iHPCur;
+	pTarget->m_InfoBase.iHPMax = it->second.iHPMax;
+
+	m_DeferredTargetHps.erase(it);
+}
+
 bool CGameProcMain::PendingNpcIn_Parse(Packet& pkt, PendingNpcIn& out)
 {
 	out.iID      = pkt.read<int16_t>();        // Server에서 관리하는 고유 ID
@@ -2917,6 +2974,15 @@ void CGameProcMain::PendingNpcIn_PruneByRegionSet()
 	{
 		if (m_SetNPCID.find(it->iID) == m_SetNPCID.end())
 			it = m_PendingNpcIns.erase(it);
+		else
+			++it;
+	}
+
+	// Also drop deferred HP updates for NPCs that will never spawn.
+	for (auto it = m_DeferredTargetHps.begin(); it != m_DeferredTargetHps.end();)
+	{
+		if (m_SetNPCID.find(it->first) == m_SetNPCID.end())
+			it = m_DeferredTargetHps.erase(it);
 		else
 			++it;
 	}
@@ -3170,6 +3236,8 @@ bool CGameProcMain::PendingNpcIn_Spawn(const PendingNpcIn& in)
 	pNPC->Action(PSA_BASIC, true, nullptr, true);
 	pNPC->ActionMove(PSM_STOP);
 
+	DeferredTargetHp_ApplyIfPresent(iID, pNPC);
+
 	return true;
 }
 
@@ -3213,6 +3281,7 @@ bool CGameProcMain::MsgRecv_NPCInAndRequest(Packet& pkt)
 	{
 		s_pOPMgr->ReleaseNPCs();
 		m_PendingNpcIns.clear();
+		DeferredTargetHp_Clear();
 		return false;
 	}
 
@@ -4436,22 +4505,25 @@ void CGameProcMain::MsgRecv_TargetHP(Packet& pkt)
 	}
 
 	CPlayerNPC* pTarget = s_pOPMgr->CharacterGetByID(iID, true);
-	if (pTarget != nullptr)
+	if (pTarget == nullptr)
 	{
-		pTarget->m_InfoBase.iHP    = iTargetHPCur;
-		pTarget->m_InfoBase.iHPMax = iTargetHPMax;
+		DeferredTargetHp_RecordIfNeeded(iID, iTargetHPMax, iTargetHPCur, static_cast<int32_t>(iTargetHPChange));
+		return;
+	}
 
-		std::string szMsg;
-		if (iTargetHPChange < 0)
-		{
-			szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_LOST, pTarget->IDString(), -iTargetHPChange);
-			MsgOutput(szMsg, 0xffffffff);
-		}
-		else if (iTargetHPChange > 0)
-		{
-			szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_RECOVER, pTarget->IDString(), iTargetHPChange);
-			MsgOutput(szMsg, 0xff6565ff);
-		}
+	pTarget->m_InfoBase.iHP    = iTargetHPCur;
+	pTarget->m_InfoBase.iHPMax = iTargetHPMax;
+
+	std::string szMsg;
+	if (iTargetHPChange < 0)
+	{
+		szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_LOST, pTarget->IDString(), -iTargetHPChange);
+		MsgOutput(szMsg, 0xffffffff);
+	}
+	else if (iTargetHPChange > 0)
+	{
+		szMsg = fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_RECOVER, pTarget->IDString(), iTargetHPChange);
+		MsgOutput(szMsg, 0xff6565ff);
 	}
 }
 
@@ -5126,6 +5198,7 @@ void CGameProcMain::MsgRecv_ZoneChange(Packet& pkt)
 		{
 			m_PendingNpcIns.clear();
 			m_SetNPCID.clear();
+			DeferredTargetHp_Clear();
 
 			int iZone = 10 * pkt.read<uint8_t>();
 			/*int iZoneSub   =*/pkt.read<uint8_t>();

@@ -4,9 +4,11 @@
 #pragma once
 
 #include "GameProcedure.h"
+#include <cstdint>
 #include <deque>
 #include <set>
 #include <string>
+#include <unordered_map>
 
 typedef std::set<int>::iterator it_ID;
 typedef std::pair<it_ID, bool> pair_ID;
@@ -44,6 +46,15 @@ protected:
 
 	std::deque<PendingNpcIn> m_PendingNpcIns;
 
+	struct DeferredTargetHp
+	{
+		uint32_t iHPMax    = 0;
+		uint32_t iHPCur    = 0;
+		int32_t iHPChange  = 0;
+	};
+
+	std::unordered_map<int, DeferredTargetHp> m_DeferredTargetHps;
+
 	bool PendingNpcIn_Parse(Packet& pkt, PendingNpcIn& out);
 	bool PendingNpcIn_Spawn(const PendingNpcIn& in);
 	bool PendingNpcIn_SpawnById(int iID);
@@ -51,7 +62,13 @@ protected:
 	void PendingNpcIn_PruneByRegionSet();
 	void PendingNpcIn_Tick();
 
+	void DeferredTargetHp_Clear();
+	void DeferredTargetHp_RecordIfNeeded(int iID, uint32_t iHPMax, uint32_t iHPCur, int32_t iHPChange);
+	void DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget);
+
 public:
+	CPlayerBase* CharacterGetByIDOrSpawnPending(int iID, bool bFromAlive);
+
 #ifdef _N3_64GRID_
 	CServerMesh* m_pSMesh;              // 서버에게 필요한 메쉬 클래스..
 #endif
