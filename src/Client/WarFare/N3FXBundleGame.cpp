@@ -35,11 +35,11 @@ void CN3FXBundleGame::Trigger(int iSourceID, int iTargetID, int iTargetJoint, in
 {
 	m_bRegion            = false;
 
-	CPlayerBase* pTarget = CGameProcedure::s_pProcMain->CharacterGetByID(iTargetID, false);
+	CPlayerBase* pTarget = CGameProcedure::s_pProcMain->CharacterGetByIDOrSpawnPending(iTargetID, false);
 	if (!pTarget)
 		return;
 
-	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pSource)
 	{
 		if (pSource->m_pShapeExtraRef)
@@ -129,7 +129,7 @@ void CN3FXBundleGame::Trigger(int iSourceID, const __Vector3& TargetPos, int iSn
 {
 	m_bRegion            = true;
 
-	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pSource)
 	{
 		if (pSource->m_pShapeExtraRef)
@@ -430,7 +430,7 @@ CN3FXPartBase* CN3FXBundleGame::AllocatePart(int iPartType) const
 
 void CN3FXBundleGame::SetPreBundlePos(int iSourceID, int iJoint)
 {
-	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByID(iSourceID, true);
+	CPlayerBase* pSource = CGameProcedure::s_pProcMain->CharacterGetByIDOrSpawnPending(iSourceID, true);
 	if (pSource)
 	{
 		if (pSource->m_pShapeExtraRef)

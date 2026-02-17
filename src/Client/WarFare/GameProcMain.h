@@ -16,6 +16,7 @@ typedef std::pair<it_ID, bool> pair_ID;
 enum e_ChatMode : uint8_t;
 enum e_SubPacket_Administrator : uint8_t;
 enum e_SubPacket_State : uint8_t;
+class CPlayerNPC;
 class CGameProcMain : public CGameProcedure
 {
 	friend class CGameProcedure;
