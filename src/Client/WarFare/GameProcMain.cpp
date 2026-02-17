@@ -3257,6 +3257,10 @@ bool CGameProcMain::MsgRecv_NPCInAndRequest(Packet& pkt)
 
 	////////////////////////////////////////////////////////////////////////////
 	// 바로 요청 패킷을 만들어 보낸다..
+	// If we already have the detailed info queued for spawn, don't re-request it.
+	for (const auto& pending : m_PendingNpcIns)
+		m_SetNPCID.erase(pending.iID);
+
 	int iNewNPCCount = static_cast<int>(m_SetNPCID.size());
 	if (iNewNPCCount > 0)
 	{
@@ -3299,7 +3303,13 @@ bool CGameProcMain::MsgRecv_NPCInRequested(Packet& pkt)
 		PendingNpcIn in;
 		PendingNpcIn_Parse(pkt, in);
 		PendingNpcIn_RemoveById(in.iID);
-		m_PendingNpcIns.push_back(std::move(in));
+
+		// Object NPCs (doors/levers/etc.) are usually cheap to initialize and may receive events immediately.
+		// Spawn them synchronously to avoid missing/deferring object event updates.
+		if (in.dwType != 0)
+			PendingNpcIn_Spawn(in);
+		else
+			m_PendingNpcIns.push_back(std::move(in));
 	}
 
 	return true;
@@ -5842,6 +5852,9 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 			int iActivate    = pkt.read<uint8_t>(); // 열고 닫음..
 
 			CPlayerNPC* pNPC = s_pOPMgr->NPCGetByID(iID, true);
+			if (pNPC == nullptr && PendingNpcIn_SpawnById(iID))
+				pNPC = s_pOPMgr->NPCGetByID(iID, true);
+
 			__ASSERT(pNPC, "Invalid NPC ID");
 			if (pNPC != nullptr)
 			{
