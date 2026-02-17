@@ -324,7 +324,7 @@ void CGameProcLogIn_1298::MsgRecv_AccountLogIn(int iCmd, Packet& pkt)
 			std::string szIP;
 			pkt.readString(szIP, iLen);
 
-			uint32_t dwPort = pkt.read<int16_t>();
+			uint32_t dwPort = pkt.read<uint16_t>();
 
 			auto socketTmp  = std::make_unique<CAPISocket>();
 			if (socketTmp != nullptr)
