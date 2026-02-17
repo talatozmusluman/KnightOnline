@@ -164,6 +164,9 @@ void CUser::Attack(int /*sid*/, int tid)
 	else if (m_pMain->_testMode)
 		nFinalDamage = USER_DAMAGE_OVERRIDE_TEST_MODE; // sungyong test
 
+	spdlog::debug("AIServerUser::Attack: userId={} charId={} authority={} finalDamage={} targetId={}",
+		m_iUserId, m_strUserID, m_byIsOP, nFinalDamage, tid);
+
 	// Npc가 죽은 경우,,
 	if (!pNpc->SetDamage(0, nFinalDamage, m_strUserID, m_iUserId + USER_BAND))
 	{

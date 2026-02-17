@@ -395,7 +395,7 @@ void CGameSocket::RecvUserInfo(char* pBuf)
 	pUser->m_byIsOP                = bAuthority;
 	//
 
-	spdlog::debug("GameSocket::RecvUserInfo: userId={} charId={}", uid, strName);
+	spdlog::debug("GameSocket::RecvUserInfo: userId={} charId={} authority={}", uid, strName, bAuthority);
 
 	if (uid >= USER_BAND && uid < MAX_USER)
 		m_pMain->_users[uid] = pUser;
