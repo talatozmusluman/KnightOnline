@@ -2890,9 +2890,26 @@ void CGameProcMain::DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget
 	if (it == m_DeferredTargetHps.end())
 		return;
 
-	// Apply silently (the original code only outputs messages when the NPC exists).
+	// Apply once the NPC exists locally. This can arrive before the spawn packet is processed,
+	// so also update the target bar + emit the usual "received damage/HP" message now.
 	pTarget->m_InfoBase.iHP    = it->second.iHPCur;
 	pTarget->m_InfoBase.iHPMax = it->second.iHPMax;
+
+	if (iID == s_pPlayer->m_iIDTarget)
+		m_pUITargetBar->UpdateHP(it->second.iHPCur, it->second.iHPMax, true);
+
+	if (it->second.iHPChange < 0)
+	{
+		std::string szMsg =
+			fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_LOST, pTarget->IDString(), -it->second.iHPChange);
+		MsgOutput(szMsg, 0xffffffff);
+	}
+	else if (it->second.iHPChange > 0)
+	{
+		std::string szMsg =
+			fmt::format_text_resource(IDS_MSG_FMT_TARGET_HP_RECOVER, pTarget->IDString(), it->second.iHPChange);
+		MsgOutput(szMsg, 0xff6565ff);
+	}
 
 	m_DeferredTargetHps.erase(it);
 }
