@@ -750,7 +750,7 @@ void CGameProcedure::MsgRecv_ServerChange(Packet& pkt)
 	std::string szIP;
 	iLen = pkt.read<int16_t>(); // 서버 IP
 	pkt.readString(szIP, iLen);
-	uint32_t dwPort                = pkt.read<int16_t>();
+	uint32_t dwPort                = pkt.read<uint16_t>();
 	s_pPlayer->m_InfoExt.iZoneInit = pkt.read<uint8_t>();
 	s_pPlayer->m_InfoExt.iZoneCur  = pkt.read<uint8_t>();
 	int iVictoryNation             = pkt.read<uint8_t>();

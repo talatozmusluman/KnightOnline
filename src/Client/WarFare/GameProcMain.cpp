@@ -5816,7 +5816,7 @@ void CGameProcMain::ParseChattingCommand(const std::string& szCmd)
 	static uint8_t byBuff[1024] {};
 
 	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-	int components = sscanf(szCmd.c_str(), "/%s %s %s %s", szCmds[0], szCmds[1], szCmds[2], szCmds[3]);
+	int components = sscanf(szCmd.c_str(), "/%1023s %1023s %1023s %1023s", szCmds[0], szCmds[1], szCmds[2], szCmds[3]);
 	if (components <= 0)
 		return;
 

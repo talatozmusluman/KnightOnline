@@ -371,7 +371,7 @@ void CGameProcLogIn_1098::MsgRecv_AccountLogIn(int iCmd, Packet& pkt)
 		{
 			std::string szIP;
 			pkt.readString(szIP, iLen);
-			uint32_t dwPort = pkt.read<int16_t>();
+			uint32_t dwPort = pkt.read<uint16_t>();
 
 			CAPISocket socketTmp;
 			s_bNeedReportConnectionClosed = false; // 서버접속이 끊어진걸 보고해야 하는지..
