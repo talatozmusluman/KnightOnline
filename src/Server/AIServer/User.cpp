@@ -450,8 +450,8 @@ void CUser::SendExp(int iExp, int iLoyalty, int /*tType*/)
 
 	SetByte(buff, AG_USER_EXP, sendIndex);
 	SetShort(buff, m_iUserId, sendIndex);
-	SetShort(buff, iExp, sendIndex);
-	SetShort(buff, iLoyalty, sendIndex);
+	SetInt(buff, iExp, sendIndex);
+	SetInt(buff, iLoyalty, sendIndex);
 
 	//TRACE(_T("$$ User - SendExp : %hs, exp=%d, loyalty=%d $$\n"), m_strUserID, iExp, iLoyalty);
 

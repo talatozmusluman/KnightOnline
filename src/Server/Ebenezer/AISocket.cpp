@@ -1109,30 +1109,30 @@ void CAISocket::RecvUserExp(char* pBuf)
 {
 	int index        = 0;
 	int userId       = GetShort(pBuf, index);
-	int16_t sExp     = GetShort(pBuf, index);
-	int16_t sLoyalty = GetShort(pBuf, index);
+	int exp          = GetInt(pBuf, index);
+	int loyalty      = GetInt(pBuf, index);
 
 	auto pUser       = _main->GetUserPtr(userId);
 	if (pUser == nullptr)
 	{
 		spdlog::error(
-			"AISocket::RecvUserExp: attempting to grant exp or loyalty to invalid user [userId={}]",
-			userId, userId, sExp, sLoyalty);
+			"AISocket::RecvUserExp: attempting to grant exp or loyalty to invalid user [userId={} exp={} loyalty={}]",
+			userId, exp, loyalty);
 		return;
 	}
 
-	if (sExp < 0 || sLoyalty < 0)
+	if (exp < 0 || loyalty < 0)
 	{
 		spdlog::error("AISocket::RecvUserExp: invalid exp or loyalty amount granted [userId={} "
 					  "charId={} exp={} loyalty={}]",
-			userId, pUser->m_pUserData->m_id, sExp, sLoyalty);
+			userId, pUser->m_pUserData->m_id, exp, loyalty);
 		return;
 	}
 
-	pUser->m_pUserData->m_iLoyalty += sLoyalty;
-	pUser->ExpChange(sExp);
+	pUser->m_pUserData->m_iLoyalty += loyalty;
+	pUser->ExpChange(exp);
 
-	if (sLoyalty > 0)
+	if (loyalty > 0)
 	{
 		char sendBuffer[128] {};
 		int sendIndex = 0;
