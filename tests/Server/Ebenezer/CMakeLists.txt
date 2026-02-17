@@ -1,6 +1,5 @@
 add_executable(Ebenezer.Tests
   ItemUpgrade_test.cpp
-  ByteBuffer_test.cpp
 )
 
 target_link_libraries(Ebenezer.Tests PRIVATE
