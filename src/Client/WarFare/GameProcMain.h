@@ -6,6 +6,7 @@
 #include "GameProcedure.h"
 #include <deque>
 #include <set>
+#include <string>
 
 typedef std::set<int>::iterator it_ID;
 typedef std::pair<it_ID, bool> pair_ID;

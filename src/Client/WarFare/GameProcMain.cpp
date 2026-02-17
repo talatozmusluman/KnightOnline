@@ -865,6 +865,9 @@ bool CGameProcMain::ProcessPacket(Packet& pkt)
 			return true;
 		case WIZ_WARP:
 		{
+			m_PendingNpcIns.clear();
+			m_SetNPCID.clear();
+
 			float fX       = (pkt.read<uint16_t>()) / 10.0f;
 			float fZ       = (pkt.read<uint16_t>()) / 10.0f;
 
@@ -2964,6 +2967,7 @@ bool CGameProcMain::MsgRecv_NPCIn(Packet& pkt)
 	PendingNpcIn in;
 	PendingNpcIn_Parse(pkt, in);
 
+	PendingNpcIn_RemoveById(in.iID);
 	return PendingNpcIn_Spawn(in);
 }
 
@@ -3208,6 +3212,7 @@ bool CGameProcMain::MsgRecv_NPCInAndRequest(Packet& pkt)
 	if (m_SetNPCID.empty()) // 새로 받은게 한개도 없다면 몽땅 날린다..
 	{
 		s_pOPMgr->ReleaseNPCs();
+		m_PendingNpcIns.clear();
 		return false;
 	}
 
@@ -5109,6 +5114,9 @@ void CGameProcMain::MsgRecv_ZoneChange(Packet& pkt)
 	{
 		case ZONE_CHANGE_TELEPORT:
 		{
+			m_PendingNpcIns.clear();
+			m_SetNPCID.clear();
+
 			int iZone = 10 * pkt.read<uint8_t>();
 			/*int iZoneSub   =*/pkt.read<uint8_t>();
 			float fX           = pkt.read<uint16_t>() / 10.0f;
