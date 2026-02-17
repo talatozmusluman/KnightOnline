@@ -10,7 +10,7 @@
       "cwd": "${workspaceFolder}",
       "console": "externalTerminal",
       "noDebug": true,
-      "preLaunchTask": "KO: Rebuild + Run (Debug|x64)"
+      "preLaunchTask": "KO: Dev Run (pull + stop + rebuild + run) (Debug|x64)"
     }
   ]
 }

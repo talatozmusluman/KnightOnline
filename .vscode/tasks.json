@@ -2,6 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "KO: Dev Run (pull + stop + rebuild + run) (Debug|x64)",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "build_scripts\\dev_run.cmd", "Debug", "x64"],
+      "problemMatcher": ["$msCompile"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
       "label": "KO: Stop stack",
       "type": "process",
       "command": "cmd.exe",
