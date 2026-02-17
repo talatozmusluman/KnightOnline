@@ -543,7 +543,7 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 {
 	int index = 0, sendIndex = 0, tempDamage = 0, sid = -1, tid = -1, nHP = 0;
 	uint8_t type = 0, result = 0, attackType = 0;
-	int16_t damage = 0;
+	int32_t damage = 0;
 	CNpc* pNpc     = nullptr;
 	CNpc* pMon     = nullptr;
 	std::shared_ptr<CUser> pUser;
@@ -554,7 +554,7 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 	result     = GetByte(pBuf, index);
 	sid        = GetShort(pBuf, index);
 	tid        = GetShort(pBuf, index);
-	damage     = GetShort(pBuf, index);
+	damage     = GetInt(pBuf, index);
 	nHP        = GetDWORD(pBuf, index);
 	attackType = GetByte(pBuf, index);
 
@@ -567,7 +567,8 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 		if (pNpc == nullptr)
 			return;
 
-		pNpc->m_iHP -= damage;
+		// AI already computed the authoritative new HP (32-bit); don't recompute from damage.
+		pNpc->m_iHP = nHP;
 		if (pNpc->m_iHP < 0)
 			pNpc->m_iHP = 0;
 
@@ -600,10 +601,14 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 			pSrcUser->SendTargetHP(0, tid, -damage);
 			if (attackType != MAGIC_ATTACK && attackType != DURATION_ATTACK)
 			{
-				pSrcUser->ItemWoreOut(DURABILITY_TYPE_ATTACK, damage);
+				const bool isGM = (pSrcUser->m_pUserData != nullptr
+					&& pSrcUser->m_pUserData->m_bAuthority == AUTHORITY_MANAGER);
+				if (!isGM)
+					pSrcUser->ItemWoreOut(DURABILITY_TYPE_ATTACK, damage);
 
 				// LEFT HAND!!! by Yookozuna
-				tempDamage = damage * pSrcUser->m_bMagicTypeLeftHand / 100;
+				tempDamage = static_cast<int>(
+					(static_cast<int64_t>(damage) * pSrcUser->m_bMagicTypeLeftHand) / 100);
 
 				// LEFT HAND!!!
 				switch (pSrcUser->m_bMagicTypeLeftHand)
@@ -624,7 +629,8 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 				}
 
 				// RIGHT HAND!!! by Yookozuna
-				tempDamage = damage * pSrcUser->m_bMagicTypeRightHand / 100;
+				tempDamage = static_cast<int>(
+					(static_cast<int64_t>(damage) * pSrcUser->m_bMagicTypeRightHand) / 100);
 
 				// LEFT HAND!!!
 				switch (pSrcUser->m_bMagicTypeRightHand)
@@ -790,7 +796,8 @@ void CAISocket::RecvNpcAttack(char* pBuf)
 			if (pMon == nullptr)
 				return;
 
-			pMon->m_iHP -= damage;
+			// AI already computed the authoritative new HP (32-bit); don't recompute from damage.
+			pMon->m_iHP = nHP;
 			if (pMon->m_iHP < 0)
 				pMon->m_iHP = 0;
 

@@ -9,7 +9,7 @@
 namespace AIServer
 {
 
-inline constexpr int USER_DAMAGE_OVERRIDE_GM         = 30'000;
+inline constexpr int USER_DAMAGE_OVERRIDE_GM         = 1'000'000;
 inline constexpr int USER_DAMAGE_OVERRIDE_LIMITED_GM = 0;
 inline constexpr int USER_DAMAGE_OVERRIDE_TEST_MODE  = 10'000;
 

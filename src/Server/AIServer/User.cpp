@@ -182,7 +182,7 @@ void CUser::Attack(int /*sid*/, int tid)
 }
 
 void CUser::SendAttackSuccess(
-	int tuid, uint8_t result, int16_t sDamage, int nHP, uint8_t byAttackType)
+	int tuid, uint8_t result, int32_t sDamage, int nHP, uint8_t byAttackType)
 {
 	int sendIndex = 0;
 	int sid = -1, tid = -1;
@@ -199,7 +199,7 @@ void CUser::SendAttackSuccess(
 	SetByte(buff, bResult, sendIndex);
 	SetShort(buff, sid, sendIndex);
 	SetShort(buff, tid, sendIndex);
-	SetShort(buff, sDamage, sendIndex);
+	SetInt(buff, sDamage, sendIndex);
 	SetDWORD(buff, nHP, sendIndex);
 	SetByte(buff, byAttackType, sendIndex);
 
@@ -311,7 +311,7 @@ void CUser::Dead(int tid, int nDamage)
 	SetByte(buff, result, sendIndex);
 	SetShort(buff, sid, sendIndex);
 	SetShort(buff, targid, sendIndex);
-	SetShort(buff, nDamage, sendIndex);
+	SetInt(buff, nDamage, sendIndex);
 	SetDWORD(buff, m_sHP, sendIndex);
 	//SetShort( buff, m_sMaxHP, sendIndex );
 

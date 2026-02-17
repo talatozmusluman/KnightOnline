@@ -594,7 +594,7 @@ public:
 
 	// Packet Send부분..
 	void SendAll(const char* pBuf, int nLength);
-	void SendAttackSuccess(uint8_t byResult, int tuid, int16_t sDamage, int nHP = 0,
+	void SendAttackSuccess(uint8_t byResult, int tuid, int32_t sDamage, int nHP = 0,
 		uint8_t byFlag = 0, uint8_t byAttackType = 1);
 	void SendNpcInfoAll(
 		char* temp_send, int& index, int count); // game server에 npc정보를 전부 전송...

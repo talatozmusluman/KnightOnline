@@ -5382,7 +5382,7 @@ void CUser::SendTargetHP(uint8_t echo, int tid, int damage)
 	SetByte(sendBuffer, echo, sendIndex);
 	SetDWORD(sendBuffer, maxhp, sendIndex);
 	SetDWORD(sendBuffer, hp, sendIndex);
-	SetShort(sendBuffer, damage, sendIndex);
+	SetInt(sendBuffer, damage, sendIndex);
 	Send(sendBuffer, sendIndex);
 }
 

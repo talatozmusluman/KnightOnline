@@ -5566,7 +5566,7 @@ bool CNpc::GetUserInViewRange(int x, int z)
 }
 
 void CNpc::SendAttackSuccess(
-	uint8_t byResult, int tuid, int16_t sDamage, int nHP, uint8_t byFlag, uint8_t byAttackType)
+	uint8_t byResult, int tuid, int32_t sDamage, int nHP, uint8_t byFlag, uint8_t byAttackType)
 {
 	int sendIndex = 0;
 	int sid = -1, tid = -1;
@@ -5584,7 +5584,7 @@ void CNpc::SendAttackSuccess(
 		SetByte(buff, byResult, sendIndex);
 		SetShort(buff, sid, sendIndex);
 		SetShort(buff, tid, sendIndex);
-		SetShort(buff, sDamage, sendIndex);
+		SetInt(buff, sDamage, sendIndex);
 		SetDWORD(buff, nHP, sendIndex);
 		SetByte(buff, byAttackType, sendIndex);
 	}
@@ -5599,7 +5599,7 @@ void CNpc::SendAttackSuccess(
 		SetByte(buff, byResult, sendIndex);
 		SetShort(buff, sid, sendIndex);
 		SetShort(buff, tid, sendIndex);
-		SetShort(buff, sDamage, sendIndex);
+		SetInt(buff, sDamage, sendIndex);
 		SetDWORD(buff, nHP, sendIndex);
 		SetByte(buff, byAttackType, sendIndex);
 	}

@@ -92,7 +92,7 @@ public:
 	void HealMagic();
 	void HealAreaCheck(int rx, int rz);
 
-	void SendAttackSuccess(int tuid, uint8_t result, int16_t sDamage, int nHP = 0,
+	void SendAttackSuccess(int tuid, uint8_t result, int32_t sDamage, int nHP = 0,
 		uint8_t sAttack_type = 1);               // 공격 성공
 	void SendMagicAttackResult(uint8_t opcode, int magicId, int targetId, int data1 = 0,
 		int data2 = 0, int data3 = 0, int data4 = 0, int data5 = 0, int data6 = 0, int data7 = 0);

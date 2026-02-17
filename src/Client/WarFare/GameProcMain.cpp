@@ -4482,7 +4482,7 @@ void CGameProcMain::MsgRecv_TargetHP(Packet& pkt)
 	uint8_t byUpdateImmediately = pkt.read<uint8_t>();  // 0x00 - 점차 늘어나게끔.. 0x01 - 즉시 업데이트..
 	int iTargetHPMax            = pkt.read<uint32_t>(); // HP
 	int iTargetHPCur            = pkt.read<uint32_t>(); // HP
-	int iTargetHPChange         = pkt.read<int16_t>();  // HP
+	int iTargetHPChange         = pkt.read<int32_t>();  // HP
 
 	if (iTargetHPMax <= 0)
 	{
@@ -4507,7 +4507,7 @@ void CGameProcMain::MsgRecv_TargetHP(Packet& pkt)
 	CPlayerNPC* pTarget = s_pOPMgr->CharacterGetByID(iID, true);
 	if (pTarget == nullptr)
 	{
-		DeferredTargetHp_RecordIfNeeded(iID, iTargetHPMax, iTargetHPCur, static_cast<int32_t>(iTargetHPChange));
+		DeferredTargetHp_RecordIfNeeded(iID, iTargetHPMax, iTargetHPCur, iTargetHPChange);
 		return;
 	}
 
