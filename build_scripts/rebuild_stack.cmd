@@ -14,7 +14,7 @@ IF "%PLATFORM%"=="" SET "PLATFORM=x64"
 
 SET "COMMON=/t:Rebuild /m /v:m /p:Configuration=%CONFIG% /p:Platform=%PLATFORM%"
 
-ECHO Rebuilding stack [%CONFIG%|%PLATFORM%]...
+ECHO Rebuilding stack [%CONFIG%^|%PLATFORM%]...
 
 CALL "%~dp0msbuild.cmd" "src\shared\shared.vcxproj" %COMMON%
 IF ERRORLEVEL 1 EXIT /B 1
@@ -42,4 +42,3 @@ IF ERRORLEVEL 1 EXIT /B 1
 
 ECHO Rebuild complete.
 EXIT /B 0
-

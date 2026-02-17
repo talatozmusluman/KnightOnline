@@ -24,7 +24,7 @@ SET "QUESTS=%ROOT%\assets\Server\QUESTS"
 SET "CLIENT_ASSETS=%ROOT%\assets\Client"
 
 IF NOT EXIST "%BIN%\AIServer.exe" (
-	ECHO ERROR: Missing "%BIN%\AIServer.exe" (did you build %CONFIG%^|%PLATFORM%?)
+	ECHO ERROR: Missing "%BIN%\AIServer.exe" ^(did you build %CONFIG%^|%PLATFORM%^?^)
 	EXIT /B 1
 )
 
@@ -58,4 +58,3 @@ START "" /D "%CLIENT_ASSETS%" "%BIN%\KnightOnLine.exe"
 :done
 ECHO Stack launched.
 EXIT /B 0
-
