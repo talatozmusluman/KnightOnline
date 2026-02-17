@@ -147,7 +147,7 @@ bool ByteBuffer::read(size_t pos, void* dest, size_t len) const
 	if (pos + len > size())
 		return false;
 
-	memcpy(dest, &_storage[_rpos], len);
+	memcpy(dest, &_storage[pos], len);
 	return true;
 }
 
@@ -171,6 +171,9 @@ bool ByteBuffer::readString(size_t pos, std::string& dest) const
 			return false;
 
 		pos += sizeof(uint16_t);
+		if (pos + len > size())
+			return false;
+
 		dest.assign(len, '\0');
 		return read(pos, &dest[0], len);
 	}
@@ -181,6 +184,9 @@ bool ByteBuffer::readString(size_t pos, std::string& dest) const
 			return false;
 
 		pos += sizeof(uint8_t);
+		if (pos + len > size())
+			return false;
+
 		dest.assign(len, '\0');
 		return read(pos, &dest[0], len);
 	}
@@ -189,11 +195,10 @@ bool ByteBuffer::readString(size_t pos, std::string& dest) const
 bool ByteBuffer::readString(size_t pos, std::string& dest, size_t len) const
 {
 	dest.clear();
-	dest.assign(len, '\0');
-
 	if (pos + len > size())
 		return false;
 
+	dest.assign(len, '\0');
 	return read(pos, &dest[0], len);
 }
 
@@ -207,6 +212,9 @@ bool ByteBuffer::readString(std::string& dest)
 		if (!read(&len, sizeof(uint16_t)))
 			return false;
 
+		if (_rpos + len > size())
+			return false;
+
 		dest.assign(len, '\0');
 		return read(&dest[0], len);
 	}
@@ -214,6 +222,9 @@ bool ByteBuffer::readString(std::string& dest)
 	{
 		uint8_t len = 0;
 		if (!read(&len, sizeof(uint8_t)))
+			return false;
+
+		if (_rpos + len > size())
 			return false;
 
 		dest.assign(len, '\0');
@@ -224,6 +235,9 @@ bool ByteBuffer::readString(std::string& dest)
 bool ByteBuffer::readString(std::string& dest, size_t len)
 {
 	dest.clear();
+	if (_rpos + len > size())
+		return false;
+
 	dest.assign(len, '\0');
 	return read(&dest[0], len);
 }
