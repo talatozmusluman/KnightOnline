@@ -27,15 +27,16 @@ IF ERRORLEVEL 1 (
 	SET "GIT=%GitPath%"
 )
 
-REM Best-effort: pull latest only if we have git + clean working tree.
+REM Best-effort: pull latest only if we have git + no tracked local changes.
+REM (Ignore untracked files like local MAP/QUESTS assets.)
 "%GIT%" rev-parse --is-inside-work-tree >NUL 2>&1
 IF NOT ERRORLEVEL 1 (
 	FOR /f "delims=" %%B IN ('"%GIT%" branch --show-current 2^>NUL') DO SET "BRANCH=%%B"
 	FOR /f "delims=" %%H IN ('"%GIT%" rev-parse --short HEAD 2^>NUL') DO SET "HEAD=%%H"
-	IF NOT "%BRANCH%"=="" ECHO Git: %BRANCH% %HEAD%
+	IF NOT "!BRANCH!"=="" ECHO Git: !BRANCH! !HEAD!
 
-	FOR /f %%C IN ('"%GIT%" status --porcelain 2^>NUL ^| find /c /v ""') DO SET "DIRTY=%%C"
-	IF "%DIRTY%"=="0" (
+	FOR /f %%C IN ('"%GIT%" status --porcelain --untracked-files=no 2^>NUL ^| find /c /v ""') DO SET "DIRTY=%%C"
+	IF "!DIRTY!"=="0" (
 		ECHO Updating from origin...
 		"%GIT%" pull --rebase
 		IF ERRORLEVEL 1 (
@@ -44,7 +45,7 @@ IF NOT ERRORLEVEL 1 (
 			EXIT /B 1
 		)
 	) ELSE (
-		ECHO NOTE: Working tree has local changes; skipping git pull.
+		ECHO NOTE: Tracked local changes; skipping git pull.
 	)
 )
 
@@ -65,4 +66,3 @@ SET "RC=%ERRORLEVEL%"
 
 POPD >NUL
 EXIT /B %RC%
-
