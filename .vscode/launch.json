@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "KO: Rebuild + Run stack (no debug)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "C:\\Windows\\System32\\cmd.exe",
+      "args": ["/d", "/c", "echo KnightOnline stack started (use VS Code Task: KO: Stop stack to stop)."],
+      "cwd": "${workspaceFolder}",
+      "console": "externalTerminal",
+      "noDebug": true,
+      "preLaunchTask": "KO: Rebuild + Run (Debug|x64)"
+    }
+  ]
+}

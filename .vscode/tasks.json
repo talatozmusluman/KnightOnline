@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "KO: Stop stack",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "build_scripts\\stop_stack.cmd"],
+      "problemMatcher": []
+    },
+    {
+      "label": "KO: Rebuild stack (Debug|x64)",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "build_scripts\\rebuild_stack.cmd", "Debug", "x64"],
+      "problemMatcher": ["$msCompile"],
+      "group": "build"
+    },
+    {
+      "label": "KO: Run stack (Debug|x64)",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "build_scripts\\run_stack.cmd", "Debug", "x64"],
+      "problemMatcher": []
+    },
+    {
+      "label": "KO: Run servers only (Debug|x64)",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "build_scripts\\run_stack.cmd", "Debug", "x64", "--no-client"],
+      "problemMatcher": []
+    },
+    {
+      "label": "KO: Rebuild + Run (Debug|x64)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "KO: Stop stack",
+        "KO: Rebuild stack (Debug|x64)",
+        "KO: Run stack (Debug|x64)"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "KO: Rebuild + Run servers only (Debug|x64)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "KO: Stop stack",
+        "KO: Rebuild stack (Debug|x64)",
+        "KO: Run servers only (Debug|x64)"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
