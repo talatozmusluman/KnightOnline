@@ -1640,28 +1640,38 @@ void CAISocket::RecvGateOpen(char* pBuf)
 {
 	CNpc* pNpc            = nullptr;
 	_OBJECT_EVENT* pEvent = nullptr;
-	int index = 0, sendIndex = 0, instanceId = 0, npcId = 0, nGateFlag = 0;
+	int index = 0, sendIndex = 0, instanceId = 0;
+	uint8_t gateFlag = 0;
 	char sendBuffer[256] {};
 
 	instanceId = GetShort(pBuf, index);
-	npcId      = GetShort(pBuf, index);
-	nGateFlag  = GetByte(pBuf, index);
+	gateFlag   = GetByte(pBuf, index);
 
 	pNpc       = _main->m_NpcMap.GetData(instanceId);
 	if (pNpc == nullptr)
 	{
 		spdlog::error(
-			"AISocket::RecvGateOpen: Npc not found [serial={} npcId={}]", instanceId, npcId);
+			"AISocket::RecvGateOpen: Npc not found [serial={}]", instanceId);
 		return;
 	}
 
-	pNpc->m_byGateOpen = nGateFlag;
+	pNpc->m_byGateOpen = gateFlag;
 
-	pEvent             = _main->m_ZoneArray[pNpc->m_sZoneIndex]->GetObjectEvent(npcId);
+	const int objectEventIndex = pNpc->m_sSid;
+	C3DMap* pMap = _main->GetMapByIndex(pNpc->m_sZoneIndex);
+	if (pMap == nullptr)
+	{
+		spdlog::error("AISocket::RecvGateOpen: map not found [serial={} zoneIndex={}]",
+			instanceId, pNpc->m_sZoneIndex);
+		return;
+	}
+
+	pEvent             = pMap->GetObjectEvent(objectEventIndex);
 	if (pEvent == nullptr)
 	{
-		spdlog::error("AISocket::RecvGateOpen: Npc ObjectEvent not found [serial={} npcId={}]",
-			instanceId, npcId);
+		spdlog::error(
+			"AISocket::RecvGateOpen: Npc ObjectEvent not found [serial={} objectEventIndex={}]",
+			instanceId, objectEventIndex);
 		return;
 	}
 
