@@ -9816,7 +9816,7 @@ bool CUser::GateObjectEvent(int16_t objectIndex, int16_t npcId)
 	SetShort(sendBuffer, npcId, sendIndex);
 	SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
 	m_pMain->Send_Region(
-		sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+		sendBuffer, sendIndex, m_pUserData->m_bZone, pNpc->m_sRegion_X, pNpc->m_sRegion_Z, nullptr, false);
 
 	return true;
 }
@@ -9892,7 +9892,8 @@ bool CUser::GateLeverObjectEvent(int16_t objectIndex, int16_t npcId)
 		SetShort(sendBuffer, pGateNpc->m_sNid, sendIndex);
 		SetByte(sendBuffer, pGateNpc->m_byGateOpen, sendIndex);
 		m_pMain->Send_Region(
-			sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+			sendBuffer, sendIndex, m_pUserData->m_bZone, pGateNpc->m_sRegion_X, pGateNpc->m_sRegion_Z,
+			nullptr, false);
 	}
 	else
 	{
@@ -9907,7 +9908,7 @@ bool CUser::GateLeverObjectEvent(int16_t objectIndex, int16_t npcId)
 	SetShort(sendBuffer, npcId, sendIndex);
 	SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
 	m_pMain->Send_Region(
-		sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+		sendBuffer, sendIndex, m_pUserData->m_bZone, pNpc->m_sRegion_X, pNpc->m_sRegion_Z, nullptr, false);
 
 	return true;
 }
@@ -9994,7 +9995,8 @@ bool CUser::FlagObjectEvent(int16_t objectIndex, int16_t npcId)
 		SetShort(sendBuffer, pFlagNpc->m_sNid, sendIndex);
 		SetByte(sendBuffer, pFlagNpc->m_byGateOpen, sendIndex);
 		m_pMain->Send_Region(
-			sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+			sendBuffer, sendIndex, m_pUserData->m_bZone, pFlagNpc->m_sRegion_X, pFlagNpc->m_sRegion_Z,
+			nullptr, false);
 
 		// ADD FLAG SCORE !!!
 		if (m_pUserData->m_bNation == NATION_KARUS)
@@ -10018,7 +10020,7 @@ bool CUser::FlagObjectEvent(int16_t objectIndex, int16_t npcId)
 	SetShort(sendBuffer, npcId, sendIndex);
 	SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
 	m_pMain->Send_Region(
-		sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+		sendBuffer, sendIndex, m_pUserData->m_bZone, pNpc->m_sRegion_X, pNpc->m_sRegion_Z, nullptr, false);
 
 	return true;
 }
