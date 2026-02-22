@@ -463,7 +463,7 @@ void CGameSocket::RecvUserInOut(char* pBuf)
 			return;
 		}
 
-		if (x1 < 0 || z1 < 0 || x1 > pMap->m_sizeMap.cx || z1 > pMap->m_sizeMap.cy)
+		if (x1 < 0 || z1 < 0 || x1 >= pMap->m_sizeMap.cx || z1 >= pMap->m_sizeMap.cy)
 		{
 			spdlog::error("GameSocket::RecvUserInOut: Character position out of bounds [charId={} "
 						  "x1=%d, z1=%d]",
@@ -559,7 +559,7 @@ bool CGameSocket::SetUid(float x, float z, int id, int speed)
 		return false;
 	}
 
-	if (x1 < 0 || z1 < 0 || x1 > pMap->m_sizeMap.cx || z1 > pMap->m_sizeMap.cy)
+	if (x1 < 0 || z1 < 0 || x1 >= pMap->m_sizeMap.cx || z1 >= pMap->m_sizeMap.cy)
 	{
 		spdlog::error("GameSocket::SetUid: character position out of bounds [userId=%d, charId=%hs "
 					  "x1=%d z1=%d]",

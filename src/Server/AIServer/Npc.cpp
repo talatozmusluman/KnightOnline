@@ -87,7 +87,7 @@ inline bool CNpc::SetUid(float x, float z, int id)
 	int nRX = (int) x / VIEW_DIST;
 	int nRZ = (int) z / VIEW_DIST;
 
-	if (x1 < 0 || z1 < 0 || x1 > pMap->m_sizeMap.cx || z1 > pMap->m_sizeMap.cy)
+	if (x1 < 0 || z1 < 0 || x1 >= pMap->m_sizeMap.cx || z1 >= pMap->m_sizeMap.cy)
 	{
 		spdlog::error("Npc::SetUid: out of map bounds [serial={} npcId={} x={} z={}]",
 			m_sNid + NPC_BAND, m_sSid, x1, z1);
