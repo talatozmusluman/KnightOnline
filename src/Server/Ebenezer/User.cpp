@@ -10106,8 +10106,8 @@ void CUser::ObjectEvent(char* pBuf)
 
 		case OBJECT_TYPE_GATE:
 		case OBJECT_TYPE_DOOR_TOPDOWN:
-			//if (!GateObjectEvent(objectIndex, npcId))
-			// SendObjectEventFailed(objectType);
+			if (!GateObjectEvent(objectIndex, npcId))
+				SendObjectEventFailed(objectType);
 			break;
 
 		case OBJECT_TYPE_GATE_LEVER:
