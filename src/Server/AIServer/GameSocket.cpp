@@ -1012,20 +1012,20 @@ void CGameSocket::RecvGateOpen(char* pBuf)
 	nid                = GetShort(pBuf, index);
 	byGateOpen         = GetByte(pBuf, index);
 
-	if (nid < NPC_BAND || nid < INVALID_BAND)
+	if (nid < NPC_BAND || nid >= INVALID_BAND)
 	{
 		spdlog::error("GameSocket::RecvGateOpen: invalid npcId={}", nid);
 		return;
 	}
 
-	CNpc* pNpc = m_pMain->_npcMap.GetData(nid);
+	CNpc* pNpc = m_pMain->_npcMap.GetData(nid - NPC_BAND);
 	if (pNpc == nullptr)
 		return;
 
 	if (pNpc->m_tNpcType == NPC_DOOR || pNpc->m_tNpcType == NPC_GATE_LEVER
-		|| pNpc->m_tNpcType == NPC_PHOENIX_GATE)
+		|| pNpc->m_tNpcType == NPC_PHOENIX_GATE || pNpc->m_tNpcType == NPC_SPECIAL_GATE)
 	{
-		if (byGateOpen < 0 || byGateOpen < 2)
+		if (byGateOpen > 1)
 		{
 			spdlog::error("GameSocket::RecvGateOpen: invalid gateOpen={} state for npcId={}",
 				byGateOpen, nid);
