@@ -10108,8 +10108,8 @@ void CUser::ObjectEvent(char* pBuf)
 
 		case OBJECT_TYPE_GATE:
 		case OBJECT_TYPE_DOOR_TOPDOWN:
-			if (!GateObjectEvent(objectIndex, npcId))
-				SendObjectEventFailed(objectType);
+			// Gate/Door direct interaction is intentionally disabled (historical behavior: lever-driven).
+			// Gates/doors are opened/closed via OBJECT_TYPE_GATE_LEVER / AI events.
 			break;
 
 		case OBJECT_TYPE_GATE_LEVER:
