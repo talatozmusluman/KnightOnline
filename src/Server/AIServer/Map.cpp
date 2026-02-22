@@ -272,7 +272,7 @@ void MAP::RegionUserAdd(int rx, int rz, int uid)
 
 void MAP::RegionUserRemove(int rx, int rz, int uid)
 {
-	if (rx < 0 || rz < 0 || rx > m_sizeRegion.cx || rz > m_sizeRegion.cy)
+	if (rx < 0 || rz < 0 || rx >= m_sizeRegion.cx || rz >= m_sizeRegion.cy)
 		return;
 
 	CRegion* region = &m_ppRegion[rx][rz];
@@ -305,7 +305,7 @@ void MAP::RegionNpcAdd(int rx, int rz, int nid)
 
 void MAP::RegionNpcRemove(int rx, int rz, int nid)
 {
-	if (rx < 0 || rz < 0 || rx > m_sizeRegion.cx || rz > m_sizeRegion.cy)
+	if (rx < 0 || rz < 0 || rx >= m_sizeRegion.cx || rz >= m_sizeRegion.cy)
 		return;
 
 	CRegion* region = &m_ppRegion[rx][rz];
