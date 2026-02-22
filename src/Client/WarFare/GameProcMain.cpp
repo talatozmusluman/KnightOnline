@@ -3030,6 +3030,29 @@ void CGameProcMain::PendingNpcIn_Tick()
 	}
 }
 
+void CGameProcMain::GateSeenMessageIfNeeded(const CPlayerNPC* pNPC, uint32_t dwStatus)
+{
+	if (pNPC == nullptr)
+		return;
+
+	const CN3ShapeExtra* pSE = pNPC->m_pShapeExtraRef;
+	if (pSE == nullptr)
+		return;
+
+	// Only show messages for actual gates/doors (not levers/flags).
+	if (pSE->m_iEventType != OBJECT_TYPE_DOOR_LEFTRIGHT && pSE->m_iEventType != OBJECT_TYPE_DOOR_TOPDOWN)
+		return;
+
+	const int level = pNPC->m_InfoBase.iLevel;
+	if (level <= 0)
+		return;
+
+	const char* statusText = (dwStatus == 0x01) ? "open" : "closed";
+	std::string msg = fmt::format("Gate seen: npcId={} eventId={} level={} status={}",
+		pNPC->IDNumber(), pSE->m_iEventID, level, statusText);
+	MsgOutput(msg, 0xff00ff00);
+}
+
 bool CGameProcMain::MsgRecv_NPCInOut(Packet& pkt)
 {
 	uint8_t byType = pkt.read<uint8_t>();
@@ -3254,6 +3277,7 @@ bool CGameProcMain::PendingNpcIn_Spawn(const PendingNpcIn& in)
 	pNPC->ActionMove(PSM_STOP);
 
 	DeferredTargetHp_ApplyIfPresent(iID, pNPC);
+	GateSeenMessageIfNeeded(pNPC, dwStatus);
 
 	return true;
 }

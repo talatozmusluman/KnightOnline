@@ -67,6 +67,8 @@ protected:
 	void DeferredTargetHp_RecordIfNeeded(int iID, uint32_t iHPMax, uint32_t iHPCur, int32_t iHPChange);
 	void DeferredTargetHp_ApplyIfPresent(int iID, CPlayerNPC* pTarget);
 
+	void GateSeenMessageIfNeeded(const CPlayerNPC* pNPC, uint32_t dwStatus);
+
 public:
 	CPlayerBase* CharacterGetByIDOrSpawnPending(int iID, bool bFromAlive);
 
