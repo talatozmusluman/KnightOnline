@@ -3050,7 +3050,12 @@ void CGameProcMain::GateSeenMessageIfNeeded(const CPlayerNPC* pNPC, uint32_t dwS
 	const char* statusText = (dwStatus == 0x01) ? "open" : "closed";
 	std::string msg = fmt::format("Gate seen: npcId={} eventId={} level={} status={}",
 		pNPC->IDNumber(), pSE->m_iEventID, level, statusText);
-	MsgOutput(msg, 0xff00ff00);
+
+	// Match where skill cooldown/system messages show up: the chat window.
+	if (m_pUIChatDlg != nullptr)
+		m_pUIChatDlg->AddChatMsg(N3_CHAT_NORMAL, msg, 0xff00ff00);
+	else
+		MsgOutput(msg, 0xff00ff00);
 }
 
 bool CGameProcMain::MsgRecv_NPCInOut(Packet& pkt)
