@@ -585,7 +585,7 @@ int16_t CMagicProcess::GetMagicDamage(
 	bool bSign     = true; // false이면 -, true이면 +
 
 	// Check if target id is valid.
-	if (tid < NPC_BAND || tid > INVALID_BAND)
+	if (tid < NPC_BAND || tid >= INVALID_BAND)
 		return 0;
 
 	CNpc* pNpc = m_pMain->_npcMap.GetData(tid - NPC_BAND);

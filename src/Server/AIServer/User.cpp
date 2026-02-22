@@ -474,7 +474,7 @@ int16_t CUser::GetDamage(int tid, int magicid)
 	model::MagicType1* pType1 = nullptr;
 	model::MagicType2* pType2 = nullptr;
 
-	if (tid < NPC_BAND || tid > INVALID_BAND)
+	if (tid < NPC_BAND || tid >= INVALID_BAND)
 		return damage;
 
 	CNpc* pNpc = m_pMain->_npcMap.GetData(tid - NPC_BAND);

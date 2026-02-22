@@ -4539,7 +4539,7 @@ bool CNpc::SetDamage(int nAttackType, int nDamage, const char* sourceName, int u
 		}
 	}
 	// Target 이 mon 인 경우
-	else if (uid >= NPC_BAND && m_Target.id < INVALID_BAND)
+	else if (uid >= NPC_BAND && uid < INVALID_BAND)
 	{
 		pNpc = m_pMain->_npcMap.GetData(uid - NPC_BAND);
 		if (pNpc == nullptr)
@@ -4594,7 +4594,7 @@ bool CNpc::SetDamage(int nAttackType, int nDamage, const char* sourceName, int u
 	}
 
 	// Target 이 mon 인 경우
-	if (uid >= NPC_BAND && m_Target.id < INVALID_BAND)
+	if (uid >= NPC_BAND && uid < INVALID_BAND)
 		ChangeNTarget(pNpc);
 
 	return true;
