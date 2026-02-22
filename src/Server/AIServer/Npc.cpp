@@ -3414,7 +3414,7 @@ int CNpc::Attack()
 
 		// 방어측 내구도 감소
 	}
-	else if (nID >= NPC_BAND && m_Target.id < INVALID_BAND)
+	else if (nID >= NPC_BAND && nID < INVALID_BAND)
 	{
 		pNpc = m_pMain->_npcMap.GetData(nID - NPC_BAND);
 
@@ -3573,7 +3573,7 @@ int CNpc::LongAndMagicAttack()
 
 		//TRACE(_T("**** LongAndMagicAttack --- sid=%d, tid=%d\n"), m_sNid+NPC_BAND, pUser->m_iUserId);
 	}
-	else if (nID >= NPC_BAND && m_Target.id < INVALID_BAND)
+	else if (nID >= NPC_BAND && nID < INVALID_BAND)
 	{
 		pNpc = m_pMain->_npcMap.GetData(nID - NPC_BAND);
 		//pNpc = m_pMain->_npcMap[nID - NPC_BAND];
@@ -3666,7 +3666,7 @@ int CNpc::TracingAttack() // 0:attack fail, 1:attack success
 
 		// 방어측 내구도 감소
 	}
-	else if (nID >= NPC_BAND && m_Target.id < INVALID_BAND)
+	else if (nID >= NPC_BAND && nID < INVALID_BAND)
 	{
 		pNpc = m_pMain->_npcMap.GetData(nID - NPC_BAND);
 

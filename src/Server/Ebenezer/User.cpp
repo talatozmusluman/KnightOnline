@@ -9739,6 +9739,10 @@ bool CUser::BindObjectEvent(int16_t objectIndex, int16_t /*npcId*/)
 	if (pEvent == nullptr)
 		return false;
 
+	float distance = GetDistanceSquared2D(pEvent->fPosX, pEvent->fPosZ);
+	if (distance > MAX_INTERACTION_RANGE_SQUARED)
+		return false;
+
 	if (pEvent->sBelong != 0 && pEvent->sBelong != m_pUserData->m_bNation)
 	{
 		result = 0;
@@ -9774,8 +9778,15 @@ bool CUser::GateObjectEvent(int16_t objectIndex, int16_t npcId)
 	if (pEvent == nullptr)
 		return false;
 
+	float distance = GetDistanceSquared2D(pEvent->fPosX, pEvent->fPosZ);
+	if (distance > MAX_INTERACTION_RANGE_SQUARED)
+		return false;
+
 	CNpc* pNpc = m_pMain->m_NpcMap.GetData(npcId);
 	if (pNpc == nullptr)
+		return false;
+
+	if (pNpc->m_sSid != objectIndex)
 		return false;
 
 	if (pNpc->m_tNpcType == NPC_GATE || pNpc->m_tNpcType == NPC_PHOENIX_GATE
@@ -9827,8 +9838,15 @@ bool CUser::GateLeverObjectEvent(int16_t objectIndex, int16_t npcId)
 	if (pEvent == nullptr)
 		return false;
 
+	float distance = GetDistanceSquared2D(pEvent->fPosX, pEvent->fPosZ);
+	if (distance > MAX_INTERACTION_RANGE_SQUARED)
+		return false;
+
 	CNpc* pNpc = m_pMain->m_NpcMap.GetData(npcId);
 	if (pNpc == nullptr)
+		return false;
+
+	if (pNpc->m_sSid != objectIndex)
 		return false;
 
 	_OBJECT_EVENT* pGateEvent = pMap->GetObjectEvent(pEvent->sControlNpcID);
@@ -9837,52 +9855,48 @@ bool CUser::GateLeverObjectEvent(int16_t objectIndex, int16_t npcId)
 
 	CNpc* pGateNpc = m_pMain->GetNpcPtr(pEvent->sControlNpcID, m_pUserData->m_bZone);
 	if (pGateNpc == nullptr)
+		return false;
+
+	if (pGateNpc->m_tNpcType == NPC_GATE || pGateNpc->m_tNpcType == NPC_PHOENIX_GATE
+		|| pGateNpc->m_tNpcType == NPC_SPECIAL_GATE)
 	{
-		result = 0;
+		if (pGateNpc->m_byGroup != m_pUserData->m_bNation && pGateNpc->m_byGroup != 0)
+		{
+			if (pGateNpc->m_byGateOpen == 0)
+				return false;
+		}
+
+		// NOTE: This can have other states; ideally they should be defined.
+		pNpc->m_byGateOpen = pNpc->m_byGateOpen == 0 ? true : false;
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex = 0;
+		SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
+		SetShort(sendBuffer, npcId, sendIndex);
+		SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
+
+		pGateNpc->m_byGateOpen = pGateNpc->m_byGateOpen ? 0 : 1;
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex = 0;
+		SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
+		SetShort(sendBuffer, pGateNpc->m_sNid, sendIndex);
+		SetByte(sendBuffer, pGateNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
+
+		result = 1;
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex = 0;
+		SetByte(sendBuffer, WIZ_OBJECT_EVENT, sendIndex);
+		SetByte(sendBuffer, static_cast<uint8_t>(pGateEvent->sType), sendIndex);
+		SetByte(sendBuffer, result, sendIndex);
+		SetShort(sendBuffer, pGateNpc->m_sNid, sendIndex);
+		SetByte(sendBuffer, pGateNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_Region(
+			sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
 	}
 	else
 	{
-		if (pGateNpc->m_tNpcType == NPC_GATE || pGateNpc->m_tNpcType == NPC_PHOENIX_GATE
-			|| pGateNpc->m_tNpcType == NPC_SPECIAL_GATE)
-		{
-			if (pNpc->m_byGroup != m_pUserData->m_bNation && pNpc->m_byGroup != 0)
-			{
-				if (pNpc->m_byGateOpen == 0)
-					return false;
-			}
-
-			// NOTE: This can have other states; ideally they should be defined.
-			pNpc->m_byGateOpen = pNpc->m_byGateOpen == 0 ? true : false;
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex = 0;
-			SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
-			SetShort(sendBuffer, npcId, sendIndex);
-			SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
-
-			pGateNpc->m_byGateOpen = pGateNpc->m_byGateOpen ? 0 : 1;
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex = 0;
-			SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
-			SetShort(sendBuffer, pGateNpc->m_sNid, sendIndex);
-			SetByte(sendBuffer, pGateNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
-
-			result = 1;
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex = 0;
-			SetByte(sendBuffer, WIZ_OBJECT_EVENT, sendIndex);
-			SetByte(sendBuffer, static_cast<uint8_t>(pGateEvent->sType), sendIndex);
-			SetByte(sendBuffer, result, sendIndex);
-			SetShort(sendBuffer, pGateNpc->m_sNid, sendIndex);
-			SetByte(sendBuffer, pGateNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_Region(
-				sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
-		}
-		else
-		{
-			result = 0;
-		}
+		return false;
 	}
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -9915,8 +9929,15 @@ bool CUser::FlagObjectEvent(int16_t objectIndex, int16_t npcId)
 	if (pEvent == nullptr)
 		return false;
 
+	float distance = GetDistanceSquared2D(pEvent->fPosX, pEvent->fPosZ);
+	if (distance > MAX_INTERACTION_RANGE_SQUARED)
+		return false;
+
 	CNpc* pNpc = m_pMain->m_NpcMap.GetData(npcId);
 	if (pNpc == nullptr)
+		return false;
+
+	if (pNpc->m_sSid != objectIndex)
 		return false;
 
 	_OBJECT_EVENT* pFlagEvent = pMap->GetObjectEvent(pEvent->sControlNpcID);
@@ -9925,71 +9946,68 @@ bool CUser::FlagObjectEvent(int16_t objectIndex, int16_t npcId)
 
 	CNpc* pFlagNpc = m_pMain->GetNpcPtr(pEvent->sControlNpcID, m_pUserData->m_bZone);
 	if (pFlagNpc == nullptr)
+		return false;
+
+	if (pFlagNpc->m_tNpcType == NPC_GATE || pFlagNpc->m_tNpcType == NPC_PHOENIX_GATE
+		|| pFlagNpc->m_tNpcType == NPC_SPECIAL_GATE)
 	{
-		result = 0;
+		if (m_pMain->m_bVictory > 0)
+			return false;
+
+		// For flags, the clicked object (lever) state controls whether the event can be triggered.
+		if (pNpc->m_byGateOpen == 0)
+			return false;
+
+		// if (pNpc->m_byGroup != 0
+		//	&& pFlagNpc->m_byGroup != 0)
+		//	goto fail_return;
+
+		result             = 1;
+
+		// pNpc->m_byGroup = m_pUserData->m_bNation;
+		// pNpc->m_byGateOpen = !pNpc->m_byGateOpen;
+		pNpc->m_byGateOpen = 0; // LEVER !!!
+
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex = 0;
+		SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
+		SetShort(sendBuffer, npcId, sendIndex);
+		SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex              = 0;
+
+		// pFlagNpc->m_byGroup = m_pUserData->m_bNation;
+		// pFlagNpc->m_byGateOpen = !pFlagNpc->m_byGateOpen;	// FLAG !!!
+		pFlagNpc->m_byGateOpen = 0;
+
+		SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex); // (Send to AI....)
+		SetShort(sendBuffer, pFlagNpc->m_sNid, sendIndex);
+		SetByte(sendBuffer, pFlagNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
+		memset(sendBuffer, 0, sizeof(sendBuffer));
+		sendIndex = 0;
+
+		SetByte(sendBuffer, WIZ_OBJECT_EVENT, sendIndex); // (Send to Region...)
+		SetByte(sendBuffer, static_cast<uint8_t>(pFlagEvent->sType), sendIndex);
+		SetByte(sendBuffer, result, sendIndex);
+		SetShort(sendBuffer, pFlagNpc->m_sNid, sendIndex);
+		SetByte(sendBuffer, pFlagNpc->m_byGateOpen, sendIndex);
+		m_pMain->Send_Region(
+			sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
+
+		// ADD FLAG SCORE !!!
+		if (m_pUserData->m_bNation == NATION_KARUS)
+			++m_pMain->m_bKarusFlag;
+		else if (m_pUserData->m_bNation == NATION_ELMORAD)
+			++m_pMain->m_bElmoradFlag;
+
+		// Did one of the teams win?
+		m_pMain->BattleZoneVictoryCheck();
 	}
 	else
 	{
-		if (pFlagNpc->m_tNpcType == NPC_GATE || pFlagNpc->m_tNpcType == NPC_PHOENIX_GATE
-			|| pFlagNpc->m_tNpcType == NPC_SPECIAL_GATE)
-		{
-			if (m_pMain->m_bVictory > 0)
-				return false;
-
-			if (pNpc->m_byGateOpen == 0)
-				return false;
-
-			// if (pNpc->m_byGroup != 0
-			//	&& pFlagNpc->m_byGroup != 0)
-			//	goto fail_return;
-
-			result             = 1;
-
-			// pNpc->m_byGroup = m_pUserData->m_bNation;
-			// pNpc->m_byGateOpen = !pNpc->m_byGateOpen;
-			pNpc->m_byGateOpen = 0; // LEVER !!!
-
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex = 0;
-			SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex);
-			SetShort(sendBuffer, npcId, sendIndex);
-			SetByte(sendBuffer, pNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex              = 0;
-
-			// pFlagNpc->m_byGroup = m_pUserData->m_bNation;
-			// pFlagNpc->m_byGateOpen = !pFlagNpc->m_byGateOpen;	// FLAG !!!
-			pFlagNpc->m_byGateOpen = 0;
-
-			SetByte(sendBuffer, AG_NPC_GATE_OPEN, sendIndex); // (Send to AI....)
-			SetShort(sendBuffer, pFlagNpc->m_sNid, sendIndex);
-			SetByte(sendBuffer, pFlagNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_AIServer(m_pUserData->m_bZone, sendBuffer, sendIndex);
-			memset(sendBuffer, 0, sizeof(sendBuffer));
-			sendIndex = 0;
-
-			SetByte(sendBuffer, WIZ_OBJECT_EVENT, sendIndex); // (Send to Region...)
-			SetByte(sendBuffer, static_cast<uint8_t>(pFlagEvent->sType), sendIndex);
-			SetByte(sendBuffer, result, sendIndex);
-			SetShort(sendBuffer, pFlagNpc->m_sNid, sendIndex);
-			SetByte(sendBuffer, pFlagNpc->m_byGateOpen, sendIndex);
-			m_pMain->Send_Region(
-				sendBuffer, sendIndex, m_pUserData->m_bZone, m_RegionX, m_RegionZ, nullptr, false);
-
-			// ADD FLAG SCORE !!!
-			if (m_pUserData->m_bNation == NATION_KARUS)
-				++m_pMain->m_bKarusFlag;
-			else if (m_pUserData->m_bNation == NATION_ELMORAD)
-				++m_pMain->m_bElmoradFlag;
-
-			// Did one of the teams win?
-			m_pMain->BattleZoneVictoryCheck();
-		}
-		else
-		{
-			result = 0;
-		}
+		return false;
 	}
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -10013,6 +10031,10 @@ bool CUser::WarpListObjectEvent(int16_t objectIndex, int16_t /*npcId*/)
 
 	_OBJECT_EVENT* pEvent = pMap->GetObjectEvent(objectIndex);
 	if (pEvent == nullptr)
+		return false;
+
+	float distance = GetDistanceSquared2D(pEvent->fPosX, pEvent->fPosZ);
+	if (distance > MAX_INTERACTION_RANGE_SQUARED)
 		return false;
 
 	// We cannot use warp gates belonging to another nation.

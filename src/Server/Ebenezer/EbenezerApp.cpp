@@ -2272,7 +2272,10 @@ CNpc* EbenezerApp::GetNpcPtr(int sid, int cur_zone)
 		if (pNpc->m_sCurZone != cur_zone)
 			continue;
 
-		if (pNpc->m_sPid == sid)
+		if (pNpc->m_byObjectType != SPECIAL_OBJECT)
+			continue;
+
+		if (pNpc->m_sSid == sid)
 			return pNpc;
 	}
 

@@ -5928,6 +5928,8 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 		{
 			std::string szMsg;
 			if (iResult == 1)
+				szMsg = fmt::format_text_resource(IDS_BIND_POINT_SUCCESS);
+			else
 				szMsg = fmt::format_text_resource(IDS_BIND_POINT_FAILED);
 			MsgOutput(szMsg, 0xff00ff00);
 		}
@@ -5938,6 +5940,9 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 		case OBJECT_TYPE_LEVER_TOPDOWN:
 		case OBJECT_TYPE_FLAG:
 		{
+			if (pkt.size() < pkt.rpos() + sizeof(int16_t) + sizeof(uint8_t))
+				break;
+
 			int iID          = pkt.read<int16_t>(); // 열고 닫을 성문 ID
 			int iActivate    = pkt.read<uint8_t>(); // 열고 닫음..
 
@@ -5978,7 +5983,7 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 						}
 						else
 						{
-							DegreesToRadians(0);
+							fRadian = DegreesToRadians(0);
 							szMsg = fmt::format_text_resource(IDS_DOOR_CLOSED);
 						}
 						vAxis.Set(0, 0, 1);
@@ -6031,10 +6036,11 @@ void CGameProcMain::MsgRecv_ObjectEvent(Packet& pkt)
 
 		case OBJECT_TYPE_WARP_POINT:
 		{
-			std::string szMsg;
 			if (iResult == 0)
-				szMsg = fmt::format_text_resource(IDS_WARP_WRONG_GATE);
-			MsgOutput(szMsg, 0xff00ff00);
+			{
+				std::string szMsg = fmt::format_text_resource(IDS_WARP_WRONG_GATE);
+				MsgOutput(szMsg, 0xff00ff00);
+			}
 		}
 		break;
 
